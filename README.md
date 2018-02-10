@@ -12,7 +12,9 @@ To use Sebastian,
 
 2.) To see if your PV is valid, type:
 
-@Sebastian search <YOUR DESIRED PV>
+NO QUOTES AROUND YOUR PV
+
+@Sebastian search YOURPVHERE
 
 He will let you know if he has found any data regarding your query
 
@@ -21,7 +23,9 @@ He will let you know if he has found any data regarding your query
 
 Example command:
 
-@Sebastian find <YOUR DESIRED PV HERE> start=day,hour,min,sec end=day,hour,min,sec
+NO QUOTES AROUND YOUR PV
+
+@Sebastian find YOURPVHERE start=day,hour,min,sec end=day,hour,min,sec
 
 the start= and end = is required.
 
@@ -29,10 +33,10 @@ You cannot omit any of the day-hour-min-sec. If it is 0, make sure you put the 0
 
 For example if you wanted the stats for 30 seconds ago
 
-@Sebastian find <YOUR PV> start=0,0,30,0 end-0,0,0,0
+@Sebastian find YOURPV start=0,0,30,0 end-0,0,0,0
 
 Another example would be from 10 days ago to 5 days ago
 
-@Sebastian find <YOUR PV> start=10,3,54,0 end=5,3,54,0
+@Sebastian find YOURPV start=10,3,54,0 end=5,3,54,0
 
 
