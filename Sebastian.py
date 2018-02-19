@@ -57,8 +57,11 @@ def handle_command(command, channel):
 #HELP command describes how to best utilize Sebastian
 
     if command.startswith(HELP_COMMAND):
-
-        default_response = "Eh, you got a question about maple syrup or hockey? If not, follow this format. 'find desiredPV startTime endTime'. The start and end time can be a whole number with decimals, whole number is days and decimals for seconds from this very moment. If startTime=0 and endTime=1.5, I'll give you a graph of the PV values for the last 36 hours. See how this works,eh? For example: the command 'find GDET:FEE1:241:ENRC 0 6' will give you a graph of the PV values from 6 days ago until now."
+    """
+        The 'help' command will allow users to query the Sebastian bot to understand his functionality. Sebastian's response will
+        provide detailed instructions on how to properly retrieve a graph of a PV of your choice.
+    """
+        default_response = "Eh, you got a question about maple syrup or hockey? If not, follow this format. 'find desiredPV start=day,hour,min,sec end=day,hour,min,sec'. When asking me a query, do not omit any of the values from start/end. If it is zero, put the zero there. Let's say you want a graph of the PV values for the last 2 days 5 hours and 27 minutes ago. Your command should look like - 'find GDET:FEE1:241:ENRC start=2,5,27,0 end=0,0,0,0'. Do NOT omit any values in start/end"
     
         slack_client.api_call(
             "chat.postMessage",
