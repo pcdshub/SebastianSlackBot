@@ -57,18 +57,13 @@ def handle_command(command, channel):
 #HELP command describes how to best utilize Sebastian
 
     if command.startswith(HELP_COMMAND):
-    """
+        """
         The 'help' command will allow users to query the Sebastian bot to understand his functionality. Sebastian's response will
         provide detailed instructions on how to properly retrieve a graph of a PV of your choice.
-    """
-        default_response = "Eh, you got a question about maple syrup or hockey? If not, follow this format. 'find desiredPV start=day,hour,min,sec end=day,hour,min,sec'. When asking me a query, do not omit any of the values from start/end. If it is zero, put the zero there. Let's say you want a graph of the PV values for the last 2 days 5 hours and 27 minutes ago. Your command should look like - 'find GDET:FEE1:241:ENRC start=2,5,27,0 end=0,0,0,0'. Do NOT omit any values in start/end"
+        """
+        default_response = "Eh, you got a question about maple syrup or hockey? If not, follow this format. 'find desiredPV start=day,hour,min,sec end=day,hour,min,sec'. The end date is optional. When asking me a query, do not omit any of the values from start/end. If it is zero, put the zero there. Let's say you want a graph of the PV values for the last 2 days 5 hours and 27 minutes ago. Your command should look like - 'find GDET:FEE1:241:ENRC start=2,5,27,0'. Do NOT omit any values in start/end"
     
-        slack_client.api_call(
-            "chat.postMessage",
-            channel=channel,
-            text=default_response
-        )
-
+        slack_client.api_call("chat.postMessage", channel=channel, text=default_response)
 
 #SEARCH command will see if PV is even valid
 
@@ -85,11 +80,7 @@ def handle_command(command, channel):
          except KeyError:
              response = "EH, I don't have any information regarding that PV, please try again. Or put on some Celine Dion and get back to work."
 
-         slack_client.api_call(
-            "chat.postMessage",
-            channel=channel,
-            text=response
-        )
+         slack_client.api_call("chat.postMessage",channel=channel,text=response)
 
 
 #FIND command will do the real work
@@ -100,74 +91,91 @@ def handle_command(command, channel):
         split = command.split()
         pv = split[1]
         start = split[2]
-        end = split[3]
+        
+        try:
+            end = split[3]
+        except IndexError:
+            end = None
   
-        response = "Your inputs check out - I'll be back with your PV plot"
-
         if start.startswith("start="):
             start1=start.replace('start=', ' ')
             start2=start1.replace(',', ' ')
             start3 = start2.split()
-            startDay = float(start3[0]) * 1
-            startHour = float(start3[1])
-            if startHour >= 24:
-                response = "Not more than 24 hours in a day - Start values"
-            else:
-                decSHour = startHour/24
- 
-            startMin = float(start3[2])
-            if startMin >= 60:
-                response = "Not more than 60 minutes in a hour"
-            else:
+
+            try:
+                startDay = float(start3[0]) * 1
+                startHour = float(start3[1])
+                decSHour = startHour/24 
+                startMin = float(start3[2])
                 decSMin = ((startMin/60)/24)
- 
-            startSec = float(start3[3])
-            if startSec >= 60:
-                response = "Not more than 60 seconds in a hour"
-            else:
+                startSec = float(start3[3])
                 decSSec = (((startSec/60)/60)/24)
- 
-            stDec = startDay + decSHour + decSMin + decSSec
-        
-        if end.startswith("end="):
-            end1=end.replace('end=', ' ')
-            end2=end1.replace(',', ' ')
-            end3 = end2.split()
-            endDay = float(end3[0]) * 1
-            endHour = float(end3[1])
-            if endHour >= 24:
-                response = "Not more than 24 hours in a day - End values"
-            else:
-                decHour = endHour/24
- 
-            endMin = float(end3[2])
-            if endMin >= 60:
-                response = "Not more than 60 minutes in a hour - End values"
-            else:
-                decMin = ((endMin/60)/24)
+                stDec = startDay + decSHour + decSMin + decSSec
+                
+                response = "Looks like your start times check out, you start time is %s day(s)" % stDec
+                slack_client.api_call("chat.postMessage",channel=channel,text=response)
 
-            endSec = float(end3[3])
-            if endSec >= 60:
-                response = "Not more than 60 seconds in a hour - End values"
-            else:
-                decSec = (((endSec/60)/60)/24)
+            except IndexError:
+                response = "Make sure your query includes start=a,b,c,d. a = days, b = hours, c = minutes, d = seconds. If you do not care about a value, please place a 0 there. Don't be lazy like a Canadian"
+                slack_client.api_call("chat.postMessage",channel=channel,text=response)
+                return
 
-            etDec = endDay + decHour + decMin + decSec
-    
-            print('arch.get(%s, xarray=True, start=%s, end=%s)'%(pv, stDec, etDec))
+            except ValueError:
+                response = "Please enter a number for your time values"
+                slack_client.api_call("chat.postMessage",channel=channel,text=response)
+                return
 
         try:
-            getPV = arch.get(pv, xarray=True, start=stDec, end=etDec)
-        except ValueError:
-            response = "Please check your inputs again. Remember - command PV start=day,hour,min,sec end=day,hour,min,sec"
+            if end.startswith("end="):
+                end1=end.replace('end=', ' ')
+                end2=end1.replace(',', ' ')
+                end3 = end2.split()
+                endDay = float(end3[0]) * 1
+                endHour = float(end3[1])
+                decHour = endHour/24
+                endMin = float(end3[2])
+                decMin = ((endMin/60)/24)
+                endSec = float(end3[3])
+                decSec = (((endSec/60)/60)/24)
+                etDec = endDay + decHour + decMin + decSec
 
-        slack_client.api_call(
-            "chat.postMessage",
-            channel=channel,
-            text=response
-        )
- 
-        array = getPV[pv]
+                response = "Looks like your end times check out, you end time is %s day(s)" % (etDec)
+                slack_client.api_call("chat.postMessage",channel=channel,text=response)
+
+        except IndexError:
+            response = "Make sure your query includes end=a,b,c,d. a = days, b = hours, c = minutes, d = seconds. If you do not care about a time value, please place a 0 there. Don't be lazy like a Canadian"
+            slack_client.api_call("chat.postMessage",channel=channel,text=response)
+            return
+
+        except ValueError:
+            response = "Please enter a number for your time values"
+            slack_client.api_call("chat.postMessage",channel=channel,text=response)
+            return
+        
+        except AttributeError:
+            print("No End value specififed")
+
+        response = "Your time inputs check out - I'll be back with your plot after validating your PV. If you don't hear from me for a few seconds, do not worry, I'm making your graph. As my Canadian hero Celine Dion sang 'I drift away and I make my way back to you'"
+        slack_client.api_call("chat.postMessage",channel=channel,text=response)
+       
+        try:
+            getPV = arch.get(pv, xarray=True, start=stDec, end=etDec)
+            print("arch.get(%s, xarray=True, start=%s, end=%s)" % (pv, stDec, etDec))
+
+        except UnboundLocalError:
+           getPV = arch.get(pv, xarray=True, start=stDec)
+           print("arch.get(%s, xarray=True, start=%s)" % (pv, stDec))
+
+        try:
+            array = getPV[pv]
+
+        except KeyError:
+            response = "Invalid PV, please try your PV with my 'search' command to make sure I have data on your PV"
+            slack_client.api_call("chat.postMessage",channel=channel,text=response)
+            return
+
+        response = "Graph coming soon. I accept all forms of maple syrup instead of a thank you"
+        slack_client.api_call("chat.postMessage",channel=channel,text=response)
         panda = array.to_pandas()
         transpose = panda.transpose()
         vals = transpose.get('vals')
@@ -179,15 +187,21 @@ def handle_command(command, channel):
         maxVal = sortVals[(lenOfVals-1)]
         plt.figure(figsize=(12,7))
         plot = plt.plot(vals)
-        plt.ylabel('PV value')
+        plt.ylabel(pv)
         plt.xlabel('Time')
         plt.ylim([(minVal-(0.1*minVal)),(maxVal+(0.1*maxVal))])
         
 
         #Saving plot and path to plot
-        graph = plt.savefig('/reg/neh/home/yashas/slackbot/archapp/lib/%sStart%sEnd%s.png'%(pv,stDec,etDec))
-        pathToGraph = '/reg/neh/home/yashas/slackbot/archapp/lib/%sStart%sEnd%s.png'%(pv,stDec,etDec)
-        print("success")
+        try:
+            graph = plt.savefig('/reg/neh/home/yashas/slackbot/archapp/lib/%s.png'%(pv))
+            pathToGraph = '/reg/neh/home/yashas/slackbot/archapp/lib/%s.png'%(pv)
+            print("success")
+   
+        except UnboundLocalError:
+            graph = plt.savefig('/reg/neh/home/yashas/slackbot/archapp/lib/%s.png'%(pv))
+            pathToGraph = '/reg/neh/home/yashas/slackbot/archapp/lib/%s.png'%(pv)
+            print("success")
 
 
         #slackAPI not working, works perfectly through requests module
