@@ -15,17 +15,19 @@ starterbot_id = None
 arch = EpicsArchive(hostname="pscaa01-dev")
 
 # constants
-RTM_READ_DELAY = 1 # 1 second delay between reading from RTM
+RTM_READ_DELAY = 1  # 1 second delay between reading from RTM
 MAIN_COMMAND = "find"
 MENTION_REGEX = "^<@(|[WU].+)>(.*)"
 HELP_COMMAND = "help"
 SEARCH_COMMAND = "search"
 
+
 def parse_bot_commands(slack_events):
     """
-        Parses a list of events coming from the Slack RTM API to find bot commands.
-        If a bot command is found, this function returns a tuple of command and channel.
-        If its not found, then this function returns None, None.
+        Parses a list of events coming from the Slack RTM API to find bot
+        commands. If a bot command is found, this function returns a tuple
+        of command and channel.If its not found, then this function returns
+        None, None.
     """
     for event in slack_events:
         if event["type"] == "message" and not "subtype" in event:
@@ -34,14 +36,17 @@ def parse_bot_commands(slack_events):
                 return message, event["channel"]
     return None, None
 
+
 def parse_direct_mention(message_text):
     """
-        Finds a direct mention (a mention that is at the beginning) in message text
-        and returns the user ID which was mentioned. If there is no direct mention, returns None
+        Finds a direct mention (a mention that is at the beginning) in message
+        text and returns the user ID which was mentioned. If there is no
+        direct mention, returns None
     """
     matches = re.search(MENTION_REGEX, message_text)
     # the first group contains the username, the second group contains the remaining message
     return (matches.group(1), matches.group(2).strip()) if matches else (None, None)
+
 
 def handle_command(command, channel):
     """
@@ -52,8 +57,10 @@ def handle_command(command, channel):
 
     if command.startswith(HELP_COMMAND):
         """
-        The 'help' command will allow users to query the Sebastian bot to understand his functionality. Sebastian's response will
-        provide detailed instructions on how to properly retrieve a graph of a PV of your choice.
+        The 'help' command will allow users to query the Sebastian bot to
+        understand his functionality. Sebastian's response will provide
+        detailed instructions on how to properly retrieve a graph of a PV
+        of your choice.
         """
         default_response = "I have 2 functions. I can 'search' if I have data on your PV or I can 'find' data on your PV that you know exists.\n Let's go through 'search' first.\n By simplying typing in 'search YOURPVHERE', I will be able to tell you if I have data for your specified PV. Simple as that.\n For example: 'search GDET:FEE1:241:ENRC' \n The 'find' command is a little tricker, since you will have to follow a specific format. \n The format is as follows: ' find desiredPV start=day,hour,min,sec end=day,hour,min,sec'. The end date is optional.\n When asking me a query, do not omit any of the values from start/end. If it is zero, put the zero there. Let's say you want a graph of the PV values for the last 2 days 5 hours and 27 minutes ago.\n Your command should look like - 'find GDET:FEE1:241:ENRC start=2,5,27,0'. Do NOT omit any values in start/end"
     
@@ -63,27 +70,27 @@ def handle_command(command, channel):
 
     if command.startswith(SEARCH_COMMAND):
 
-         try:
-             split = command.split()
-             pv = split[1]
-             getPV = arch.get(pv, xarray=True, start=0, end=0.00005)
+        try:
+            split = command.split()
+            pv = split[1]
+            getPV = arch.get(pv, xarray=True, start=0, end=0.00005)
         
-         except IndexError:
-             response = "Please provide a proper input when using this command"
-             slack_client.api_call("chat.postMessage",channel=channel,text=response)
-             return
+        except IndexError:
+            response = "Please provide a proper input when using this command"
+            slack_client.api_call("chat.postMessage",channel=channel,text=response)
+            return
 
-         try:
-             array = getPV[pv]
-             response = "I got some data on that PV, use the 'find' command and input some times. Back to hockey"
+        try:
+            array = getPV[pv]
+            response = "I got some data on that PV, use the 'find' command and input some times. Back to hockey"
 
-         except KeyError:
-             response = "I don't have any information regarding that PV, please try again."
+        except KeyError:
+            response = "I don't have any information regarding that PV, please try again."
 
-         except IndexError:
-             response = "Please only input the PV value in your query"
+        except IndexError:
+            response = "Please only input the PV value in your query"
 
-         slack_client.api_call("chat.postMessage",channel=channel,text=response)
+        slack_client.api_call("chat.postMessage",channel=channel,text=response)
 
 
 #FIND command will do the real work
