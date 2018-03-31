@@ -27,13 +27,14 @@ NO QUOTES AROUND YOUR PV
 
 @Sebastian find YOURPVHERE start=day,hour,min,sec end=day,hour,min,sec
 
-the start= and end = is required.
+the start=day,hour,min,sec is required.
+the end=day,hour,min,sec is optional
 
-You cannot omit any of the day-hour-min-sec. If it is 0, make sure you put the 0 there
+You cannot omit any of the day-hour-min-sec. If it is 0, make sure you put the 0 there (he will warn you as well)
 
 For example if you wanted the stats for 30 seconds ago
 
-@Sebastian find YOURPV start=0,0,30,0 end-0,0,0,0
+@Sebastian find YOURPV start=0,0,30,0
 
 Another example would be from 10 days ago to 5 days ago
 
