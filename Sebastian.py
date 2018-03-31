@@ -1,16 +1,10 @@
 import sys
 sys.path.append('/reg/neh/home5/yashas/miniconda3/lib/python3.6/site-packages')
-import json
-import os
-import time
-import re
+import json, os, time, re, xarray, simplejson, requests
 from slackclient import SlackClient
-import xarray
-import simplejson
 from archapp.interactive import EpicsArchive
 import pandas as pd
 import matplotlib.pyplot as plt
-import requests
 
 # instantiate Slack client
 slack_client = SlackClient(os.environ.get('SLACK_BOT_TOKEN'))
@@ -61,7 +55,7 @@ def handle_command(command, channel):
         The 'help' command will allow users to query the Sebastian bot to understand his functionality. Sebastian's response will
         provide detailed instructions on how to properly retrieve a graph of a PV of your choice.
         """
-        default_response = "Eh, you got a question about maple syrup or hockey? If not, follow this format. 'find desiredPV start=day,hour,min,sec end=day,hour,min,sec'. The end date is optional. When asking me a query, do not omit any of the values from start/end. If it is zero, put the zero there. Let's say you want a graph of the PV values for the last 2 days 5 hours and 27 minutes ago. Your command should look like - 'find GDET:FEE1:241:ENRC start=2,5,27,0'. Do NOT omit any values in start/end"
+        default_response = "I have 2 functions. I can 'search' if I have data on your PV or I can 'find' data on your PV that you know exists.\n Let's go through 'search' first.\n By simplying typing in 'search YOURPVHERE', I will be able to tell you if I have data for your specified PV. Simple as that.\n For example: 'search GDET:FEE1:241:ENRC' \n The 'find' command is a little tricker, since you will have to follow a specific format. \n The format is as follows: ' find desiredPV start=day,hour,min,sec end=day,hour,min,sec'. The end date is optional.\n When asking me a query, do not omit any of the values from start/end. If it is zero, put the zero there. Let's say you want a graph of the PV values for the last 2 days 5 hours and 27 minutes ago.\n Your command should look like - 'find GDET:FEE1:241:ENRC start=2,5,27,0'. Do NOT omit any values in start/end"
     
         slack_client.api_call("chat.postMessage", channel=channel, text=default_response)
 
@@ -69,16 +63,25 @@ def handle_command(command, channel):
 
     if command.startswith(SEARCH_COMMAND):
 
-         split = command.split()
-         pv = split[1]
-         getPV = arch.get(pv, xarray=True, start=0, end=0.00005)
-         
+         try:
+             split = command.split()
+             pv = split[1]
+             getPV = arch.get(pv, xarray=True, start=0, end=0.00005)
+        
+         except IndexError:
+             response = "Please provide a proper input when using this command"
+             slack_client.api_call("chat.postMessage",channel=channel,text=response)
+             return
+
          try:
              array = getPV[pv]
-             response = "EH, I got some data on that PV, use the 'find' command and input some times. Back to hockey"
+             response = "I got some data on that PV, use the 'find' command and input some times. Back to hockey"
 
          except KeyError:
-             response = "EH, I don't have any information regarding that PV, please try again. Or put on some Celine Dion and get back to work."
+             response = "I don't have any information regarding that PV, please try again."
+
+         except IndexError:
+             response = "Please only input the PV value in your query"
 
          slack_client.api_call("chat.postMessage",channel=channel,text=response)
 
@@ -155,7 +158,7 @@ def handle_command(command, channel):
         except AttributeError:
             print("No End value specififed")
 
-        response = "Your time inputs check out - I'll be back with your plot after validating your PV. If you don't hear from me for a few seconds, do not worry, I'm making your graph. As my Canadian hero Celine Dion sang 'I drift away and I make my way back to you'"
+        response = "Your time inputs check out - I'll be back with your plot after validating your PV. If you don't hear from me for a few seconds, do not worry, I'm making your graph."
         slack_client.api_call("chat.postMessage",channel=channel,text=response)
        
         try:
@@ -174,7 +177,7 @@ def handle_command(command, channel):
             slack_client.api_call("chat.postMessage",channel=channel,text=response)
             return
 
-        response = "Graph coming soon. I accept all forms of maple syrup instead of a thank you"
+        response = "Graph coming soon. I accept all forms of maple syrup as a thank you"
         slack_client.api_call("chat.postMessage",channel=channel,text=response)
         panda = array.to_pandas()
         transpose = panda.transpose()
@@ -212,6 +215,12 @@ def handle_command(command, channel):
 
 
 
+    if command.startswith(HELP_COMMAND) == False and command.startswith(SEARCH_COMMAND) == False and command.startswith(MAIN_COMMAND) == False:
+        response = "Dilly Dilly. Please type in 'help' to see how I may assist you today"
+        slack_client.api_call("chat.postMessage",channel=channel,text=response)
+
+
+
 if __name__ == "__main__":
     if slack_client.rtm_connect(with_team_state=False):
         print("Starter Bot connected and running!")
@@ -222,5 +231,6 @@ if __name__ == "__main__":
             if command:
                 handle_command(command, channel)
             time.sleep(RTM_READ_DELAY)
+
     else:
         print("Connection failed. Exception traceback printed above.")
